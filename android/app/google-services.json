@@ -1,0 +1,126 @@
+{
+  "project_info": {
+    "project_number": "1011843952929",
+    "project_id": "clinigo-2026",
+    "storage_bucket": "clinigo-2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1011843952929:android:05b3986ae4911269face60",
+        "android_client_info": {
+          "package_name": "com.clinigo.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1011843952929-qlnas1pgr8tju4f4t9adg9k9ku0bhf61.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.clinigo.app",
+            "certificate_hash": "b47750de8f3f67a025fe9faf2040ed856187f056"
+          }
+        },
+        {
+          "client_id": "1011843952929-gpgpr2rgb344rm99picc2ub5l81742p9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA8QrAYGkDZOxnHj67rp6_5VbYmhd7km2w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1011843952929-gpgpr2rgb344rm99picc2ub5l81742p9.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1011843952929-5ifr1vka17fbp0k0me3hb1ncr311q38l.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.clinigo.app.clinigoMobile"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1011843952929:android:7e271b7ab30672c7face60",
+        "android_client_info": {
+          "package_name": "com.clinigo.app.clinigo_mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1011843952929-gpgpr2rgb344rm99picc2ub5l81742p9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA8QrAYGkDZOxnHj67rp6_5VbYmhd7km2w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1011843952929-gpgpr2rgb344rm99picc2ub5l81742p9.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1011843952929-5ifr1vka17fbp0k0me3hb1ncr311q38l.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.clinigo.app.clinigoMobile"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1011843952929:android:3ccb6ac51922d025face60",
+        "android_client_info": {
+          "package_name": "com.supertechlb.clinigo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1011843952929-gpgpr2rgb344rm99picc2ub5l81742p9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA8QrAYGkDZOxnHj67rp6_5VbYmhd7km2w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1011843952929-gpgpr2rgb344rm99picc2ub5l81742p9.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1011843952929-5ifr1vka17fbp0k0me3hb1ncr311q38l.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.clinigo.app.clinigoMobile"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
