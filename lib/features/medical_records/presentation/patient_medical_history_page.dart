@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/medical_record_provider.dart';
-import '../../auth/providers/auth_provider.dart';
 import '../../../shared/services/specialty_service.dart';
 import '../../../core/widgets/dynamic_specialty_form.dart';
 import '../../../core/constants/theme.dart';
 import '../../../shared/models/medical_record.dart';
+
+import 'package:flutter_animate/flutter_animate.dart';
 
 class PatientMedicalHistoryPage extends ConsumerWidget {
   final String patientId;
@@ -23,39 +24,68 @@ class PatientMedicalHistoryPage extends ConsumerWidget {
     final specialtyAsync = ref.watch(currentClinicSpecialtyProvider);
 
     return Scaffold(
-      backgroundColor: CliniGoTheme.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text('$patientName History', style: const TextStyle(fontSize: 18)),
-      ),
+      backgroundColor: const Color(0xFFF8FAFC),
       body: specialtyAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error loading specialty: $e')),
-        data: (specialty) => Column(
-          children: [
-            if (specialty != null)
-              _SpecialtyActionHeader(specialty: specialty, patientId: patientId),
-            Expanded(
-              child: recordsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Error: $e')),
-                data: (records) {
-                  if (records.isEmpty) {
-                    return _EmptyHistoryState();
-                  }
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                    itemCount: records.length,
-                    physics: const BouncingScrollPhysics(),
-                    itemBuilder: (context, index) {
-                      final record = records[index];
-                      return _RecordCard(record: record, specialty: specialty);
-                    },
-                  );
-                },
+        data: (specialty) => CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverAppBar(
+              expandedHeight: 180,
+              pinned: true,
+              backgroundColor: const Color(0xFF0F172A),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                onPressed: () => Navigator.pop(context),
+              ),
+              flexibleSpace: FlexibleSpaceBar(
+                background: Container(
+                  padding: const EdgeInsets.fromLTRB(24, 70, 24, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('HISTORY', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                      const SizedBox(height: 8),
+                      Text(
+                        patientName,
+                        style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -1),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
+            if (specialty != null)
+              SliverToBoxAdapter(
+                child: _SpecialtyActionHeader(specialty: specialty, patientId: patientId),
+              ),
+            recordsAsync.when(
+              loading: () => const SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
+              error: (e, _) => SliverFillRemaining(child: Center(child: Text('Error: $e'))),
+              data: (records) {
+                if (records.isEmpty) {
+                  return SliverFillRemaining(child: _EmptyHistoryState());
+                }
+                return SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final record = records[index];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                        child: _RecordCard(record: record, specialty: specialty)
+                            .animate()
+                            .fadeIn(delay: (index * 100).ms)
+                            .moveY(begin: 10, end: 0, delay: (index * 100).ms),
+                      );
+                    },
+                    childCount: records.length,
+                  ),
+                );
+              },
+            ),
+            const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
           ],
         ),
       ),
@@ -70,9 +100,13 @@ class _EmptyHistoryState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.history_edu_rounded, size: 64, color: Colors.grey[200]),
-          const SizedBox(height: 16),
-          Text('No medical records found', style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.w600)),
+          Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: const Color(0xFFE2E8F0))),
+            child: const Icon(Icons.history_edu_rounded, size: 64, color: Color(0xFFE2E8F0)),
+          ),
+          const SizedBox(height: 24),
+          const Text('No Entries Found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8))),
         ],
       ),
     );
@@ -87,51 +121,42 @@ class _SpecialtyActionHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
-      margin: const EdgeInsets.all(24),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: InkWell(
+        onTap: () => _showNewRecordForm(context, ref),
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 8)),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'ACTIVE FORM',
-                  style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  specialty.name,
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
-                ),
-              ],
-            ),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: CliniGoTheme.primaryColor.withValues(alpha: 0.2)),
+            boxShadow: [
+              BoxShadow(color: CliniGoTheme.primaryColor.withValues(alpha: 0.04), blurRadius: 20, offset: const Offset(0, 8)),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => _showNewRecordForm(context, ref),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: CliniGoTheme.accentColor,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.add_rounded, size: 18),
-                SizedBox(width: 8),
-                Text('Add Entry', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-              ],
-            ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: CliniGoTheme.primaryColor.withValues(alpha: 0.1), shape: BoxShape.circle),
+                child: const Icon(Icons.add_rounded, color: CliniGoTheme.primaryColor, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('New ${specialty.name} Entry', style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0F172A), fontSize: 16)),
+                    const Text('Create a detailed clinical record.', style: TextStyle(color: Color(0xFF64748B), fontSize: 12, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1)),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -202,9 +227,16 @@ class _NewRecordSheetState extends ConsumerState<_NewRecordSheet> {
                       patientId: widget.patientId,
                       clinicalData: _formData,
                     );
-                if (mounted) Navigator.pop(context);
+                if (context.mounted) Navigator.pop(context);
               },
-              child: const Text('Save Clinical Record'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0F172A),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 0,
+              ),
+              child: const Text('Save Clinical Record', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
             ),
           ],
         ),
@@ -225,34 +257,36 @@ class _RecordCard extends StatelessWidget {
     final dateStr = date != null ? '${date.day}/${date.month}/${date.year}' : 'Unknown date';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.black.withOpacity(0.04)),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(color: CliniGoTheme.primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                  child: const Icon(Icons.history_edu_rounded, size: 16, color: CliniGoTheme.primaryColor),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.event_note_rounded, size: 18, color: Color(0xFF64748B)),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  dateStr,
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF0F172A)),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(dateStr, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF0F172A))),
+                    Text(specialty?.name.toUpperCase() ?? 'ENTRY', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF94A3B8), letterSpacing: 1)),
+                  ],
                 ),
                 const Spacer(),
-                const Icon(Icons.more_vert_rounded, size: 18, color: Colors.grey),
+                const Icon(Icons.more_horiz_rounded, size: 18, color: Color(0xFFCBD5E1)),
               ],
             ),
           ),
@@ -270,14 +304,14 @@ class _RecordCard extends StatelessWidget {
                         width: 100,
                         child: Text(
                           e.key.replaceAll('_', ' ').toUpperCase(),
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey[400], letterSpacing: 0.5),
+                          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF94A3B8), letterSpacing: 0.5),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           e.value.toString(),
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF1E293B)),
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF334155)),
                         ),
                       ),
                     ],

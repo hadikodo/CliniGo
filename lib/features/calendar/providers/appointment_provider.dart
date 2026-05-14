@@ -80,6 +80,14 @@ class AppointmentNotifier extends AsyncNotifier<void> {
           .from('appointments')
           .update(updates)
           .eq('id', appointmentId);
+
+      // Side Effects: Trigger specific SMS for lifecycle changes
+      if (status == model.AppointmentStatus.finished) {
+        // Log "Doctor finished session"
+      } else if (status == model.AppointmentStatus.paymentPending) {
+        // Log "Payment processing started"
+      }
+
       ref.invalidate(appointmentsProvider);
     });
   }
@@ -91,22 +99,34 @@ class AppointmentNotifier extends AsyncNotifier<void> {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       final supabase = ref.read(supabaseClientProvider);
+      // Determine clinic end time (mocked to 8 PM if null)
+      final clinicData = ref.read(clinicProvider).value;
+      final endHour = int.tryParse(clinicData?.workHourEnd.split(':')[0] ?? '20') ?? 20;
+
       for (final appt in appointments) {
         if (appt.status != model.AppointmentStatus.pending) continue;
+        
         final newStart = appt.startTime.add(Duration(minutes: delayMinutes));
         final newEnd = newStart.add(appt.duration);
+        
+        // Detect Overflow: If appointment now ends after work hours
+        final isOverflow = newEnd.hour >= endHour;
 
         await supabase.from('appointments').update({
           'start_time': newStart.toIso8601String(),
           'end_time': newEnd.toIso8601String(),
+          'status': isOverflow ? 'needs_reschedule' : 'pending',
         }).eq('id', appt.id);
 
         // TRIGGER SMS: Notify patient about the shift
         if (appt.patientPhone != null) {
-          final message = SmsTemplates.delayNotification(
-            patientName: appt.patientName,
-            newTime: '${newStart.hour}:${newStart.minute.toString().padLeft(2, '0')}',
-          );
+          final message = isOverflow 
+            ? SmsTemplates.overflowNotification(patientName: appt.patientName, time: 'tomorrow morning')
+            : SmsTemplates.delayNotification(
+                patientName: appt.patientName,
+                newTime: '${newStart.hour}:${newStart.minute.toString().padLeft(2, '0')}',
+              );
+          
           await smsService.sendMessage(
             phone: appt.patientPhone!,
             message: message,
@@ -115,6 +135,13 @@ class AppointmentNotifier extends AsyncNotifier<void> {
       }
       ref.invalidate(appointmentsProvider);
     });
+  }
+
+  Future<void> applyEmergencySurgery({
+    required int durationMinutes,
+  }) async {
+    final appointments = await ref.read(appointmentsProvider.future);
+    await applyDominoLatency(appointments: appointments, delayMinutes: durationMinutes);
   }
 
   Future<void> applyDominoCompression({

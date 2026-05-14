@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
 import '../../../core/constants/theme.dart';
 
+import 'package:flutter_animate/flutter_animate.dart';
+
 class RegisterClinicScreen extends ConsumerStatefulWidget {
   const RegisterClinicScreen({super.key});
 
@@ -34,12 +36,14 @@ class _RegisterClinicScreenState extends ConsumerState<RegisterClinicScreen> {
     super.dispose();
   }
 
-  Future<void> _submitLead() async {
+  Future<void> _submitRegistration() async {
     if (!_formKey.currentState!.validate()) return;
 
     final supabase = ref.read(supabaseClientProvider);
     
     try {
+      // In a self-serve flow, we create the clinic and then redirect to setup
+      // For now, we still insert into leads but also simulate moving to setup
       await supabase.from('clinic_leads').insert({
         'clinic_name': _clinicNameController.text.trim(),
         'clinic_specialty': _specialtyController.text.trim(),
@@ -52,26 +56,12 @@ class _RegisterClinicScreenState extends ConsumerState<RegisterClinicScreen> {
       });
 
       if (!mounted) return;
-
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          title: const Text('Request Received'),
-          content: const Text(
-            'Thank you for your interest in CliniGo. Our team will review your clinic information and contact you shortly to activate your account and start your trial.',
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () => context.go('/login'),
-              child: const Text('Back to Login'),
-            ),
-          ],
-        ),
-      );
+      
+      // Move to Setup Wizard directly for a seamless experience
+      context.go('/setup');
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('Error: $e'), backgroundColor: CliniGoTheme.errorColor),
       );
     }
   }
@@ -82,169 +72,179 @@ class _RegisterClinicScreenState extends ConsumerState<RegisterClinicScreen> {
     final isLoading = authState.isLoading;
 
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Register Your Clinic',
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                          color: Theme.of(context).primaryColor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Tell us about your clinic to get started',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.secondary,
-                        ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 40),
-                  _SectionLabel('Clinic Details'),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _clinicNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Clinic Name',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.local_hospital_outlined),
-                    ),
-                    validator: (v) =>
-                        (v == null || v.isEmpty) ? 'Enter clinic name' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(
-                      labelText: 'Primary Specialty',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.medical_services_outlined),
-                    ),
-                    items: ['General Medicine', 'Cardiology', 'Dermatology', 'Dentistry', 'Pediatrics', 'OB/GYN']
-                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                        .toList(),
-                    onChanged: (v) => _specialtyController.text = v ?? '',
-                    validator: (v) => v == null ? 'Select specialty' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _patientsController,
-                    decoration: const InputDecoration(
-                      labelText: 'Estimated Monthly Patients',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.people_outline),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: _clinicSize,
-                    decoration: const InputDecoration(
-                      labelText: 'Clinic Size',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.business_outlined),
-                    ),
-                    items: ['Small (1-2 doctors)', 'Medium (3-10 doctors)', 'Large (10+ doctors)']
-                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                        .toList(),
-                    onChanged: (v) => setState(() => _clinicSize = v ?? ''),
-                  ),
-                  const SizedBox(height: 24),
-                  _SectionLabel('Contact Information'),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _phoneController,
-                    decoration: const InputDecoration(
-                      labelText: 'Mobile Number',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.phone_outlined),
-                    ),
-                    keyboardType: TextInputType.phone,
-                    validator: (v) => (v == null || v.isEmpty) ? 'Enter number' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _whatsappController,
-                    decoration: const InputDecoration(
-                      labelText: 'WhatsApp Number (Optional)',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.chat_outlined),
-                    ),
-                    keyboardType: TextInputType.phone,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _cityController,
-                    decoration: const InputDecoration(
-                      labelText: 'City / Location',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.location_on_outlined),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  _SectionLabel('Additional Message'),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _messageController,
-                    decoration: const InputDecoration(
-                      labelText: 'How can we help you?',
-                      border: OutlineInputBorder(),
-                    ),
-                    maxLines: 3,
-                  ),
-                  const SizedBox(height: 32),
-                  ElevatedButton(
-                    onPressed: isLoading ? null : _submitLead,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: CliniGoTheme.primaryColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF0F172A), size: 20),
+          onPressed: () => context.go('/trial'),
+        ),
+      ),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Create Your Clinic',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF0F172A),
+                  letterSpacing: -1,
+                ),
+              ).animate().fadeIn().moveY(begin: 10, end: 0),
+              const SizedBox(height: 8),
+              const Text(
+                'Finalize your details to launch CliniGo.',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF64748B),
+                  fontWeight: FontWeight.w500,
+                ),
+              ).animate().fadeIn(delay: 100.ms),
+              const SizedBox(height: 40),
+              
+              _buildInputCard([
+                _buildLabel('CLINIC IDENTITY'),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _clinicNameController,
+                  decoration: _inputDecoration('Clinic Name', Icons.local_hospital_rounded),
+                  validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  decoration: _inputDecoration('Primary Specialty', Icons.medical_services_rounded),
+                  items: ['General Medicine', 'Cardiology', 'Dermatology', 'Dentistry', 'Pediatrics', 'OB/GYN']
+                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                      .toList(),
+                  onChanged: (v) => _specialtyController.text = v ?? '',
+                  validator: (v) => v == null ? 'Required' : null,
+                ),
+              ]).animate().fadeIn(delay: 200.ms).moveY(begin: 20, end: 0),
+              
+              const SizedBox(height: 24),
+              
+              _buildInputCard([
+                _buildLabel('OPERATIONAL SCALE'),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _patientsController,
+                        decoration: _inputDecoration('Monthly Patients', Icons.people_rounded),
+                        keyboardType: TextInputType.number,
                       ),
                     ),
-                    child: isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Submit Registration Request'),
-                  ),
-                  const SizedBox(height: 16),
-                  TextButton(
-                    onPressed: () => context.go('/login'),
-                    child: const Text('Already have an account? Sign In'),
-                  ),
-                ],
-              ),
-            ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _clinicSize,
+                        decoration: _inputDecoration('Team Size', Icons.business_rounded),
+                        items: ['Small (1-2)', 'Medium (3-10)', 'Large (10+)']
+                            .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                            .toList(),
+                        onChanged: (v) => setState(() => _clinicSize = v ?? ''),
+                      ),
+                    ),
+                  ],
+                ),
+              ]).animate().fadeIn(delay: 300.ms).moveY(begin: 20, end: 0),
+              
+              const SizedBox(height: 24),
+              
+              _buildInputCard([
+                _buildLabel('CONTACT & LOCATION'),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _phoneController,
+                  decoration: _inputDecoration('Mobile Number', Icons.phone_rounded),
+                  keyboardType: TextInputType.phone,
+                  validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _cityController,
+                  decoration: _inputDecoration('City', Icons.location_on_rounded),
+                ),
+              ]).animate().fadeIn(delay: 400.ms).moveY(begin: 20, end: 0),
+              
+              const SizedBox(height: 48),
+              
+              ElevatedButton(
+                onPressed: isLoading ? null : _submitRegistration,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0F172A),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                ),
+                child: isLoading
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Initialize My Clinic', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+              ).animate().fadeIn(delay: 500.ms),
+              
+              const SizedBox(height: 32),
+            ],
           ),
         ),
       ),
     );
   }
-}
 
-class _SectionLabel extends StatelessWidget {
-  final String text;
-  const _SectionLabel(this.text);
+  Widget _buildInputCard(List<Widget> children) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildLabel(String text) {
     return Text(
       text,
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w900,
+        color: Color(0xFF94A3B8),
+        letterSpacing: 1,
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, size: 20, color: const Color(0xFF64748B)),
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: CliniGoTheme.primaryColor),
+      ),
+      labelStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 14),
     );
   }
 }

@@ -19,7 +19,7 @@ class JokerConsolePage extends ConsumerWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
                 child: const Text('🃏', style: TextStyle(fontSize: 16)),
               ),
               const SizedBox(width: 12),
@@ -99,15 +99,15 @@ class _LeadConsoleCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(12)),
             child: const Icon(Icons.business_rounded, color: Colors.white70, size: 20),
           ),
           const SizedBox(width: 16),
@@ -118,7 +118,7 @@ class _LeadConsoleCard extends StatelessWidget {
                 Text(lead['clinic_name'] ?? 'Unknown Clinic', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
                 Text(
                   '${lead['clinic_specialty']} · ${lead['city']}',
-                  style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12, fontWeight: FontWeight.w600),
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -126,7 +126,7 @@ class _LeadConsoleCard extends StatelessWidget {
           ElevatedButton(
             onPressed: onReview,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white.withOpacity(0.1),
+              backgroundColor: Colors.white.withValues(alpha: 0.1),
               foregroundColor: Colors.white,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

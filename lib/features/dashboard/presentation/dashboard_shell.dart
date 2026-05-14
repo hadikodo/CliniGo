@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../auth/providers/auth_provider.dart';
-import '../../billing/providers/billing_provider.dart';
 import '../../billing/providers/subscription_provider.dart';
 import '../../../core/constants/theme.dart';
 
@@ -27,7 +26,7 @@ class DashboardShell extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: CliniGoTheme.primaryColor.withOpacity(0.1),
+                  color: CliniGoTheme.primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Image.asset('assets/logo.png', height: 24),
@@ -61,14 +60,14 @@ class DashboardShell extends ConsumerWidget {
                       ),
                       Text(
                         profile?.role.toUpperCase() ?? '',
-                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: CliniGoTheme.accentColor.withOpacity(0.8)),
+                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: CliniGoTheme.accentColor.withValues(alpha: 0.8)),
                       ),
                     ],
                   ),
                   const SizedBox(width: 12),
                   CircleAvatar(
                     radius: 18,
-                    backgroundColor: CliniGoTheme.primaryColor.withOpacity(0.1),
+                    backgroundColor: CliniGoTheme.primaryColor.withValues(alpha: 0.1),
                     child: Text(
                       (profile?.fullName ?? 'C')[0],
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: CliniGoTheme.primaryColor),
@@ -123,7 +122,7 @@ class _AppDrawer extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: CliniGoTheme.primaryColor.withOpacity(0.1),
+                    color: CliniGoTheme.primaryColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Image.asset('assets/logo.png', height: 32),
@@ -168,11 +167,21 @@ class _AppDrawer extends ConsumerWidget {
                 Consumer(builder: (context, ref, _) {
                   final profile = ref.watch(userProfileProvider).value;
                   if (profile?.role != 'doctor') return const SizedBox.shrink();
-                  return _DrawerItem(
-                    icon: Icons.admin_panel_settings_rounded,
-                    label: 'Staff Settings',
-                    isActive: location == '/staff',
-                    onTap: () => context.go('/staff'),
+                  return Column(
+                    children: [
+                      _DrawerItem(
+                        icon: Icons.admin_panel_settings_rounded,
+                        label: 'Staff Settings',
+                        isActive: location == '/staff',
+                        onTap: () => context.go('/staff'),
+                      ),
+                      _DrawerItem(
+                        icon: Icons.settings_suggest_rounded,
+                        label: 'Clinic Settings',
+                        isActive: location == '/settings',
+                        onTap: () => context.go('/settings'),
+                      ),
+                    ],
                   );
                 }),
                 Consumer(builder: (context, ref, _) {
@@ -222,7 +231,7 @@ class _DrawerItem extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: isActive ? CliniGoTheme.primaryColor.withOpacity(0.08) : Colors.transparent,
+        color: isActive ? CliniGoTheme.primaryColor.withValues(alpha: 0.08) : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
         child: ListTile(
           onTap: () {
@@ -265,7 +274,7 @@ class _TrialEndedOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.black.withOpacity(0.8),
+      color: Colors.black.withValues(alpha: 0.8),
       padding: const EdgeInsets.all(32),
       child: Center(
         child: Column(

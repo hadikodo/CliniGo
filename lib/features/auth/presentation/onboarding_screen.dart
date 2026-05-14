@@ -187,7 +187,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                       const SizedBox(height: 48),
                       ElevatedButton(
-                        onPressed: () => context.go('/register'),
+                        onPressed: () => context.go('/trial'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: CliniGoTheme.accentColor,
                           foregroundColor: Colors.white,

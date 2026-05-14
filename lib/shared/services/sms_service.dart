@@ -27,6 +27,13 @@ class SmsTemplates {
   }) =>
       'Hi $patientName, apologies! Due to an emergency, your appointment is moved to $newTime. Please confirm.';
 
+  /// Overflow notification (moved to another day)
+  static String overflowNotification({
+    required String patientName,
+    required String time,
+  }) =>
+      'Hi $patientName, we have a major delay today. Your appointment needs to be rescheduled. We suggest $time. Please contact us.';
+
   /// Reminder
   static String reminder({
     required String patientName,

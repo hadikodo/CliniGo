@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart' as sf;
-import '../providers/appointment_provider.dart';
-import '../../../shared/models/appointment.dart' as model;
-import '../../../features/patient_management/providers/patient_provider.dart';
 import '../../../core/constants/theme.dart';
+import '../providers/appointment_provider.dart';
+import '../../patient_management/providers/patient_provider.dart';
+import '../../../shared/models/appointment.dart' as model;
 
 class CalendarPage extends ConsumerStatefulWidget {
   const CalendarPage({super.key});
@@ -24,9 +26,9 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
       backgroundColor: Colors.white,
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddAppointmentSheet(context, ref),
-        backgroundColor: CliniGoTheme.primaryColor,
+        backgroundColor: const Color(0xFF0F172A),
         child: const Icon(Icons.add_rounded, color: Colors.white),
-      ),
+      ).animate().scale(delay: 400.ms, curve: Curves.easeOutBack),
       body: Column(
         children: [
           _DominoControlBar(appointments: appointmentsAsync.value ?? []),
@@ -42,22 +44,22 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                 view: _calendarView,
                 dataSource: _AppointmentDataSource(appointments),
                 initialDisplayDate: DateTime.now(),
-                headerHeight: 0, // We'll use our own header or just the view toggle
-                todayHighlightColor: CliniGoTheme.accentColor,
+                headerHeight: 0,
+                todayHighlightColor: CliniGoTheme.primaryColor,
                 selectionDecoration: BoxDecoration(
-                  color: CliniGoTheme.primaryColor.withOpacity(0.05),
+                  color: CliniGoTheme.primaryColor.withValues(alpha: 0.05),
                   border: Border.all(color: CliniGoTheme.primaryColor, width: 1),
                 ),
                 timeSlotViewSettings: sf.TimeSlotViewSettings(
                   startHour: 7,
                   endHour: 21,
                   timeIntervalHeight: 70,
-                  timeTextStyle: TextStyle(color: Colors.grey[400], fontSize: 12, fontWeight: FontWeight.w600),
+                  timeTextStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.w700),
                   dayFormat: 'EEE',
                 ),
                 appointmentBuilder: (ctx, details) {
                   final appt = details.appointments.first as _CalendarEntry;
-                  return _AppointmentCard(entry: appt);
+                  return _AppointmentCard(entry: appt).animate().fadeIn().scale(duration: 300.ms);
                 },
                 onTap: (details) {
                   if (details.appointments == null || details.appointments!.isEmpty) return;
@@ -96,79 +98,142 @@ class _DominoControlBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isProcessing = ref.watch(appointmentControllerProvider).isLoading;
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF0F172A),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 20, offset: const Offset(0, 4)),
         ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(4),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: CliniGoTheme.accentColor,
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 14),
-              ),
-              const SizedBox(width: 10),
-              const Text(
-                'DOMINO ENGINE ACTIVE',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1,
-                ),
+                child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 16),
+              ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 2.seconds, color: Colors.white30),
+              const SizedBox(width: 12),
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'DOMINO ENGINE ACTIVE',
+                    style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1),
+                  ),
+                  Text(
+                    'Real-time latency orchestration',
+                    style: TextStyle(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.w600),
+                  ),
+                ],
               ),
               const Spacer(),
-              Text(
-                '${appointments.length} Slots Today',
-                style: const TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.bold),
-              ),
+              if (isProcessing)
+                const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white38))
+              else
+                Text(
+                  '${appointments.length} Slots',
+                  style: const TextStyle(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.w800),
+                ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
             child: Row(
               children: [
-                _DominoActionChip(label: '+15m', icon: Icons.timer_outlined, onTap: () => _delay(ref, 15)),
-                const SizedBox(width: 8),
-                _DominoActionChip(label: '+30m', icon: Icons.timer_outlined, onTap: () => _delay(ref, 30)),
-                const SizedBox(width: 8),
+                _DominoActionChip(label: '+15m', icon: Icons.timer_outlined, onTap: () => _delay(context, ref, 15)),
+                const SizedBox(width: 10),
+                _DominoActionChip(label: '+30m', icon: Icons.timer_outlined, onTap: () => _delay(context, ref, 30)),
+                const SizedBox(width: 10),
+                _DominoActionChip(label: '+60m', icon: Icons.timer_outlined, onTap: () => _delay(context, ref, 60)),
+                const SizedBox(width: 10),
                 _DominoActionChip(
-                  label: 'Emergency', 
+                  label: 'Surgery', 
                   icon: Icons.emergency_rounded, 
-                  color: Colors.redAccent,
-                  onTap: () => _delay(ref, 45),
+                  color: const Color(0xFFFF3B30),
+                  onTap: () => _showEmergencyDialog(context, ref),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 _DominoActionChip(
                   label: 'Pause', 
                   icon: Icons.pause_circle_filled_rounded, 
-                  color: Colors.orangeAccent,
-                  onTap: () => _delay(ref, 20),
+                  color: const Color(0xFFFF9500),
+                  onTap: () => _delay(context, ref, 20),
                 ),
               ],
-            ),
+            ).animate().fadeIn(delay: 200.ms).slideX(begin: 0.1, end: 0),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _delay(WidgetRef ref, int minutes) async {
-    await ref.read(appointmentControllerProvider.notifier).applyDominoLatency(
-      appointments: appointments, 
-      delayMinutes: minutes
+  void _showEmergencyDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Row(
+          children: [
+            Icon(Icons.emergency_rounded, color: Color(0xFFFF3B30)),
+            SizedBox(width: 12),
+            Text('Emergency Surgery', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+          ],
+        ),
+        content: const Text(
+          'This will shift all remaining appointments today. Estimated duration?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          _dialogAction(context, '60m', () => _delay(context, ref, 60, isEmergency: true)),
+          _dialogAction(context, '90m', () => _delay(context, ref, 90, isEmergency: true)),
+          _dialogAction(context, '120m', () => _delay(context, ref, 120, isEmergency: true)),
+        ],
+      ),
     );
+  }
+
+  Widget _dialogAction(BuildContext context, String label, VoidCallback onTap) {
+    return TextButton(
+      onPressed: () {
+        Navigator.pop(context);
+        onTap();
+      },
+      child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+    );
+  }
+
+  Future<void> _delay(BuildContext context, WidgetRef ref, int minutes, {bool isEmergency = false}) async {
+    HapticFeedback.heavyImpact();
+    if (isEmergency) {
+      await ref.read(appointmentControllerProvider.notifier).applyEmergencySurgery(durationMinutes: minutes);
+    } else {
+      await ref.read(appointmentControllerProvider.notifier).applyDominoLatency(
+        appointments: appointments, 
+        delayMinutes: minutes
+      );
+    }
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Domino Engine: Shifted ${appointments.length} slots by $minutes min'),
+          backgroundColor: const Color(0xFF0F172A),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    }
   }
 }
 
@@ -187,7 +252,7 @@ class _DominoActionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = color ?? Colors.white.withOpacity(0.1);
+    final bgColor = color ?? Colors.white.withValues(alpha: 0.1);
     final textColor = color != null ? Colors.white : Colors.white70;
 
     return InkWell(
@@ -198,7 +263,7 @@ class _DominoActionChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
         child: Row(
           children: [
@@ -237,7 +302,7 @@ class _ViewToggle extends StatelessWidget {
                     duration: const Duration(milliseconds: 200),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
-                      color: current == view ? CliniGoTheme.primaryColor.withOpacity(0.05) : Colors.transparent,
+                      color: current == view ? CliniGoTheme.primaryColor.withValues(alpha: 0.05) : Colors.transparent,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -312,10 +377,10 @@ class _AppointmentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: entry.color.withOpacity(0.9),
+        color: entry.color.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
-          BoxShadow(color: entry.color.withOpacity(0.2), blurRadius: 4, offset: const Offset(0, 2)),
+          BoxShadow(color: entry.color.withValues(alpha: 0.2), blurRadius: 4, offset: const Offset(0, 2)),
         ],
       ),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -341,9 +406,9 @@ class _AppointmentCard extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            '${entry.source.status.toDbString().replaceAll('_', ' ').toUpperCase()}',
+            entry.source.status.toDbString().replaceAll('_', ' ').toUpperCase(),
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 8,
               fontWeight: FontWeight.w900,
               letterSpacing: 0.5,
@@ -372,7 +437,7 @@ class _AddAppointmentSheetState extends ConsumerState<_AddAppointmentSheet> {
   String? _selectedPatientId;
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
-  int _durationMinutes = 30;
+  final int _durationMinutes = 30;
   String _appointmentType = 'consultation';
   final _notesCtrl = TextEditingController();
 
@@ -479,7 +544,7 @@ class _AddAppointmentSheetState extends ConsumerState<_AddAppointmentSheet> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _appointmentType,
+                initialValue: _appointmentType,
                 decoration: const InputDecoration(labelText: 'Visit Type', prefixIcon: Icon(Icons.medical_services_outlined)),
                 items: ['consultation', 'surgery', 'follow_up', 'emergency', 'examination'].map((type) => DropdownMenuItem(
                   value: type,
@@ -524,7 +589,7 @@ class _DateTimePickerTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.grey[50],
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.black.withOpacity(0.05)),
+          border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -570,7 +635,7 @@ class _AppointmentActionsSheet extends ConsumerWidget {
             children: [
               CircleAvatar(
                 radius: 24,
-                backgroundColor: CliniGoTheme.primaryColor.withOpacity(0.1),
+                backgroundColor: CliniGoTheme.primaryColor.withValues(alpha: 0.1),
                 child: Text(appointment.patientName[0], style: const TextStyle(fontWeight: FontWeight.bold, color: CliniGoTheme.primaryColor)),
               ),
               const SizedBox(width: 16),
@@ -588,7 +653,7 @@ class _AppointmentActionsSheet extends ConsumerWidget {
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: CliniGoTheme.accentColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                decoration: BoxDecoration(color: CliniGoTheme.accentColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
                 child: Text(appointment.status.toDbString().toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: CliniGoTheme.accentColor)),
               ),
             ],
@@ -632,9 +697,9 @@ class _ActionRow extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.05),
+            color: color.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withOpacity(0.1)),
+            border: Border.all(color: color.withValues(alpha: 0.1)),
           ),
           child: Row(
             children: [
@@ -642,7 +707,7 @@ class _ActionRow extends StatelessWidget {
               const SizedBox(width: 16),
               Text(label, style: TextStyle(fontWeight: FontWeight.w700, color: color, fontSize: 14)),
               const Spacer(),
-              Icon(Icons.chevron_right_rounded, color: color.withOpacity(0.5), size: 18),
+              Icon(Icons.chevron_right_rounded, color: color.withValues(alpha: 0.5), size: 18),
             ],
           ),
         ),

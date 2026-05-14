@@ -15,8 +15,10 @@ import '../../features/billing/presentation/billing_page.dart';
 import '../../features/superadmin/presentation/joker_console_page.dart';
 import '../../features/dashboard/presentation/setup_wizard_page.dart';
 import '../../features/settings/presentation/staff_management_page.dart';
+import '../../features/settings/presentation/clinic_settings_page.dart';
 import '../../features/medical_records/presentation/patient_medical_history_page.dart';
 import '../../shared/models/patient.dart';
+import '../../features/auth/presentation/trial_paywall_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -37,6 +39,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/onboarding',
         builder: (context, state) => const OnboardingScreen(),
+      ),
+      GoRoute(
+        path: '/trial',
+        builder: (context, state) => const TrialPaywallScreen(),
       ),
       GoRoute(
         path: '/setup',
@@ -81,6 +87,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/staff',
             builder: (context, state) => const StaffManagementPage(),
+          ),
+          GoRoute(
+            path: '/settings',
+            builder: (context, state) => const ClinicSettingsPage(),
           ),
           GoRoute(
             path: '/patient/:id/history',

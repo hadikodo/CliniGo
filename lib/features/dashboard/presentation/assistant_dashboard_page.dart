@@ -6,7 +6,8 @@ import '../../../shared/models/appointment.dart' as model;
 import '../../../shared/models/prescription.dart';
 import '../../medical_records/presentation/prescription_page.dart';
 import '../../../core/constants/theme.dart';
-import '../../auth/providers/auth_provider.dart';
+
+import 'package:flutter_animate/flutter_animate.dart';
 
 class AssistantDashboardPage extends ConsumerWidget {
   const AssistantDashboardPage({super.key});
@@ -14,38 +15,57 @@ class AssistantDashboardPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final appointmentsAsync = ref.watch(appointmentsProvider);
-
+    
     return Scaffold(
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _AssistantHeader(),
-          Expanded(
-            child: appointmentsAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
-              data: (appointments) {
-                final todayQueue = appointments
-                    .where(
-                      (a) =>
-                          a.status == model.AppointmentStatus.pending ||
-                          a.status == model.AppointmentStatus.running,
-                    )
-                    .toList();
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(child: _AssistantHeader()),
+          appointmentsAsync.when(
+            loading: () => const SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
+            error: (e, _) => SliverFillRemaining(child: Center(child: Text('Error: $e'))),
+            data: (appointments) {
+              final todayQueue = appointments
+                  .where(
+                    (a) =>
+                        a.status == model.AppointmentStatus.pending ||
+                        a.status == model.AppointmentStatus.running ||
+                        a.status == model.AppointmentStatus.finished ||
+                        a.status == model.AppointmentStatus.paymentPending,
+                  )
+                  .toList();
 
-                if (todayQueue.isEmpty) {
-                  return const Center(child: Text('No patients in queue.'));
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: todayQueue.length,
-                  itemBuilder: (context, i) =>
-                      _QueueCard(appointment: todayQueue[i], ref: ref),
+              if (todayQueue.isEmpty) {
+                return SliverFillRemaining(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.checklist_rtl_rounded, size: 64, color: Colors.grey[200]),
+                        const SizedBox(height: 16),
+                        const Text('Queue is empty', style: TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
                 );
-              },
-            ),
+              }
+
+              return SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, i) => Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+                    child: _QueueCard(appointment: todayQueue[i], ref: ref)
+                        .animate()
+                        .fadeIn(delay: (i * 100).ms)
+                        .moveX(begin: 20, end: 0, delay: (i * 100).ms),
+                  ),
+                  childCount: todayQueue.length,
+                ),
+              );
+            },
           ),
+          const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
         ],
       ),
     );
@@ -56,34 +76,38 @@ class _AssistantHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-      decoration: BoxDecoration(
-        color: CliniGoTheme.primaryColor.withAlpha(20),
-        border: Border(
-          bottom: BorderSide(color: CliniGoTheme.primaryColor.withAlpha(50)),
-        ),
+      padding: const EdgeInsets.fromLTRB(24, 64, 24, 24),
+      decoration: const BoxDecoration(
+        color: Color(0xFF0F172A),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Patient Queue',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: CliniGoTheme.primaryColor,
-            ),
+          const Text('CLINICAL OPERATIONS', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+          const SizedBox(height: 8),
+          const Text(
+            'Daily Patient Queue',
+            style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1),
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Focus on vitals and intake today.',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.monitor_heart_rounded, color: Colors.white60, size: 14),
+                SizedBox(width: 8),
+                Text('Real-time synchronization active.', style: TextStyle(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.w600)),
+              ],
+            ),
           ),
         ],
       ),
-    );
+    ).animate().fadeIn().moveY(begin: -20, end: 0);
   }
 }
 
@@ -94,73 +118,85 @@ class _QueueCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isRunning = appointment.status == model.AppointmentStatus.running;
+    final status = appointment.status;
+    final isRunning = status == model.AppointmentStatus.running;
+    final isFinished = status == model.AppointmentStatus.finished;
+    final isPaymentPending = status == model.AppointmentStatus.paymentPending;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
+    Color statusColor = CliniGoTheme.primaryColor;
+    String statusText = 'WAITING';
+    IconData trailingIcon = Icons.add_circle_outline_rounded;
+
+    if (isRunning) {
+      statusColor = const Color(0xFFF59E0B);
+      statusText = 'DOCTOR ROOM';
+      trailingIcon = Icons.play_circle_filled_rounded;
+    } else if (isFinished) {
+      statusColor = const Color(0xFF10B981);
+      statusText = 'GO TO RECEPTION';
+      trailingIcon = Icons.arrow_forward_rounded;
+    } else if (isPaymentPending) {
+      statusColor = const Color(0xFF6366F1);
+      statusText = 'BILLING DUE';
+      trailingIcon = Icons.receipt_long_rounded;
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: ListTile(
         onTap: () => _showVitalsSheet(context, ref),
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        leading: Container(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            color: statusColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Center(
+            child: Text(
+              appointment.patientFirstName?[0].toUpperCase() ?? '?',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: statusColor),
+            ),
+          ),
+        ),
+        title: Text(
+          appointment.patientName,
+          style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF0F172A), fontSize: 16),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
           child: Row(
             children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: isRunning
-                      ? CliniGoTheme.warningColor
-                      : Colors.grey[200],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Text(
-                    appointment.patientFirstName?[0].toUpperCase() ?? '?',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: isRunning ? Colors.white : Colors.grey[600],
-                    ),
-                  ),
+              Icon(Icons.access_time_rounded, size: 12, color: Colors.grey[400]),
+              const SizedBox(width: 4),
+              Text(
+                '${appointment.startTime.hour}:${appointment.startTime.minute.toString().padLeft(2, '0')}',
+                style: TextStyle(fontSize: 12, color: Colors.grey[500], fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(width: 12),
+              const Text('·', style: TextStyle(color: Color(0xFFCBD5E1))),
+              const SizedBox(width: 12),
+              Text(
+                statusText,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: statusColor,
+                  letterSpacing: 0.5,
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      appointment.patientName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    Text(
-                      '${appointment.startTime.hour}:${appointment.startTime.minute.toString().padLeft(2, '0')}',
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                  ],
-                ),
-              ),
-              if (isRunning)
-                const Chip(
-                  label: Text(
-                    'RUNNING',
-                    style: TextStyle(fontSize: 10, color: Colors.white),
-                  ),
-                  backgroundColor: CliniGoTheme.warningColor,
-                )
-              else
-                Icon(
-                  Icons.vibration_outlined,
-                  color: CliniGoTheme.primaryColor,
-                ),
             ],
           ),
         ),
+        trailing: Icon(trailingIcon, color: statusColor.withValues(alpha: 0.8)),
       ),
     );
   }
@@ -169,9 +205,7 @@ class _QueueCard extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (_) => _VitalsEntrySheet(appointment: appointment, ref: ref),
     );
   }
@@ -225,107 +259,210 @@ class _VitalsEntrySheetState extends State<_VitalsEntrySheet> {
 
   @override
   Widget build(BuildContext context) {
-    final isRunning =
-        widget.appointment.status == model.AppointmentStatus.running;
+    final status = widget.appointment.status;
+    final isFinished = status == model.AppointmentStatus.finished;
+    final isPaymentPending = status == model.AppointmentStatus.paymentPending;
+    final isCompleted = status == model.AppointmentStatus.completed;
 
-    return Padding(
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
       padding: EdgeInsets.only(
         left: 24,
         right: 24,
-        top: 24,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        top: 12,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 32,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Clinical Record: ${widget.appointment.patientName}',
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: _VitalsField(
-                  controller: _bpController,
-                  label: 'BP',
-                  icon: Icons.compress,
-                  placeholder: '120/80',
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 24),
+                decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('CLINICAL RECORD', style: TextStyle(color: Color(0xFF64748B), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                      const SizedBox(height: 4),
+                      Text(widget.appointment.patientName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.5)),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(20)),
+                  child: Text(status.toDbString().toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF64748B))),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            if (!isPaymentPending && !isCompleted) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: _VitalsField(
+                      controller: _bpController,
+                      label: 'BP',
+                      icon: Icons.compress_rounded,
+                      placeholder: '120/80',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _VitalsField(
+                      controller: _tempController,
+                      label: 'Temp',
+                      icon: Icons.thermostat_rounded,
+                      placeholder: '36.6',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _VitalsField(
+                      controller: _weightController,
+                      label: 'Weight',
+                      icon: Icons.monitor_weight_outlined,
+                      placeholder: '75.0',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _VitalsField(
+                      controller: _pulseController,
+                      label: 'Pulse',
+                      icon: Icons.favorite_border_rounded,
+                      placeholder: '72',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _VitalsField(
+                controller: _prescriptionController,
+                label: 'Quick Prescription Note',
+                icon: Icons.medication_outlined,
+                placeholder: 'Initial medication notes...',
+              ),
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: () => _openFullPrescription(context),
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.description_outlined, size: 18, color: CliniGoTheme.primaryColor),
+                      SizedBox(width: 12),
+                      Text('Open Full Prescription Builder', style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF475569))),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _VitalsField(
-                  controller: _tempController,
-                  label: 'Temp',
-                  icon: Icons.thermostat_outlined,
-                  placeholder: '36.6',
-                ),
-              ),
+              const SizedBox(height: 12),
             ],
-          ),
-          const SizedBox(height: 12),
-          _VitalsField(
-            controller: _prescriptionController,
-            label: 'Quick Prescription Note',
-            icon: Icons.medication_outlined,
-            placeholder: 'Paracetamol 500mg...',
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: () => _openFullPrescription(context),
-            icon: const Icon(Icons.description_outlined),
-            label: const Text('Add Full Prescription'),
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size(double.infinity, 48),
-            ),
-          ),
-          const SizedBox(height: 12),
-          _VitalsField(
-            controller: _billingController,
-            label: 'Billing Amount (\$)',
-            icon: Icons.monetization_on_outlined,
-            placeholder: '50.00',
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(height: 24),
-          if (!isRunning)
-            ElevatedButton(
-              onPressed: () => _updateStatus(model.AppointmentStatus.running),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: CliniGoTheme.primaryColor,
-                foregroundColor: Colors.white,
+            if (isFinished || isPaymentPending || isCompleted)
+              _VitalsField(
+                controller: _billingController,
+                label: 'Billing Amount (\$)',
+                icon: Icons.payments_outlined,
+                placeholder: '50.00',
+                keyboardType: TextInputType.number,
               ),
-              child: const Text('Start Appointment'),
-            )
-          else
-            ElevatedButton(
-              onPressed: () => _updateStatus(model.AppointmentStatus.finished),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
+            const SizedBox(height: 32),
+            _buildActionButtons(status),
+            const SizedBox(height: 12),
+            if (!isCompleted)
+              TextButton(
+                onPressed: () => _saveVitalsOnly(close: true),
+                child: const Text('Save & Close', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w700)),
               ),
-              child: const Text('Finish Consultation'),
-            ),
-          const SizedBox(height: 12),
-          TextButton(
-            onPressed: () => _saveVitalsOnly(),
-            child: const Text('Save Vitals Only'),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
+  Widget _buildActionButtons(model.AppointmentStatus status) {
+    switch (status) {
+      case model.AppointmentStatus.pending:
+        return ElevatedButton(
+          onPressed: () => _updateStatus(model.AppointmentStatus.running),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF0F172A),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 0,
+          ),
+          child: const Text('Start Appointment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        );
+      case model.AppointmentStatus.running:
+        return ElevatedButton(
+          onPressed: () => _updateStatus(model.AppointmentStatus.finished),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF10B981),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 0,
+          ),
+          child: const Text('Finish Consultation', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        );
+      case model.AppointmentStatus.finished:
+        return ElevatedButton(
+          onPressed: () => _updateStatus(model.AppointmentStatus.paymentPending),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF6366F1),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 0,
+          ),
+          child: const Text('Move to Billing', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        );
+      case model.AppointmentStatus.paymentPending:
+        return ElevatedButton(
+          onPressed: () => _updateStatus(model.AppointmentStatus.completed),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF0F172A),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 0,
+          ),
+          child: const Text('Complete Payment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
   Future<void> _updateStatus(model.AppointmentStatus status) async {
     final amount = double.tryParse(_billingController.text) ?? 0;
-
-    // Save vitals + update appointment status and billing amount
-    await widget.ref
-        .read(appointmentControllerProvider.notifier)
-        .updateStatus(widget.appointment.id, status, billingAmount: amount);
-
+    await widget.ref.read(appointmentControllerProvider.notifier).updateStatus(widget.appointment.id, status, billingAmount: amount);
     await _saveVitalsOnly(close: true);
   }
 
@@ -341,9 +478,7 @@ class _VitalsEntrySheetState extends State<_VitalsEntrySheet> {
       'billing_preview': _billingController.text,
     };
 
-    await widget.ref
-        .read(medicalRecordControllerProvider.notifier)
-        .saveRecord(
+    await widget.ref.read(medicalRecordControllerProvider.notifier).saveRecord(
           patientId: widget.appointment.patientId!,
           clinicalData: clinicalData,
         );
@@ -371,11 +506,15 @@ class _VitalsField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
+      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
       decoration: InputDecoration(
         labelText: label,
         hintText: placeholder,
-        prefixIcon: Icon(icon),
-        border: const OutlineInputBorder(),
+        prefixIcon: Icon(icon, size: 18, color: const Color(0xFF64748B)),
+        filled: true,
+        fillColor: const Color(0xFFF8FAFC),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+        labelStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 12, fontWeight: FontWeight.w600),
       ),
       keyboardType: keyboardType,
     );

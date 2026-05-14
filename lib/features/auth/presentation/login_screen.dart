@@ -59,7 +59,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
-                  colors: [CliniGoTheme.primaryColor.withOpacity(0.1), Colors.transparent],
+                  colors: [CliniGoTheme.primaryColor.withValues(alpha: 0.1), Colors.transparent],
                 ),
               ),
             ),
@@ -73,7 +73,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
-                  colors: [CliniGoTheme.accentColor.withOpacity(0.05), Colors.transparent],
+                  colors: [CliniGoTheme.accentColor.withValues(alpha: 0.05), Colors.transparent],
                 ),
               ),
             ),
@@ -129,9 +129,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(32),
-                        border: Border.all(color: Colors.black.withOpacity(0.03)),
+                        border: Border.all(color: Colors.black.withValues(alpha: 0.03)),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 40, offset: const Offset(0, 20)),
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 40, offset: const Offset(0, 20)),
                         ],
                       ),
                       child: Column(
